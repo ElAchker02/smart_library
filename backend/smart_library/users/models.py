@@ -1,10 +1,38 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.base_user import BaseUserManager
 import uuid
 
 
+class CustomUserManager(BaseUserManager):
+    """Custom manager that uses email as the unique identifier."""
+
+    use_in_migrations = True
+
+    def create_user(self, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError("Email address must be provided.")
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('is_active', True)
+
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superusers must have is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superusers must have is_superuser=True.')
+
+        return self.create_user(email, password, **extra_fields)
+
+
 class User(AbstractUser):
-    """Modèle utilisateur étendu avec des champs personnalisés"""
+    """Extended user model with custom fields."""
     
     ROLE_CHOICES = [
         ('super_admin', 'Super Admin'),
@@ -15,7 +43,6 @@ class User(AbstractUser):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100, verbose_name="Nom complet")
     email = models.EmailField(max_length=100, unique=True, verbose_name="Email")
-    password = models.TextField(verbose_name="Mot de passe")
     role = models.CharField(
         max_length=20,
         choices=ROLE_CHOICES,
@@ -28,6 +55,8 @@ class User(AbstractUser):
     username = None
     first_name = None
     last_name = None
+
+    objects = CustomUserManager()
     
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['name']
