@@ -11,8 +11,14 @@ class UserViewSet(viewsets.ModelViewSet):
     """CRUD complet pour les utilisateurs."""
 
     serializer_class = UserSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     queryset = get_user_model().objects.all().order_by("-created_at")
+
+    def get_permissions(self):
+        # Autoriser la création de compte sans authentification préalable.
+        if self.action == "create":
+            return [permissions.AllowAny()]
+        return super().get_permissions()
 
 
 class LoginView(APIView):

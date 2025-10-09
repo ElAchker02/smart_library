@@ -8,7 +8,7 @@ class TagViewSet(viewsets.ModelViewSet):
     """CRUD complet pour les tags."""
 
     serializer_class = TagSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     queryset = Tag.objects.all().order_by("name")
 
 
@@ -16,7 +16,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
     """CRUD complet pour les documents."""
 
     serializer_class = DocumentSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     queryset = Document.objects.select_related("tag", "owner").all().order_by("-date_added")
 
 
@@ -24,5 +24,5 @@ class FavoriteViewSet(viewsets.ModelViewSet):
     """CRUD complet pour les favoris."""
 
     serializer_class = FavoriteSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     queryset = Favorite.objects.select_related("user", "document").all().order_by("-created_at")

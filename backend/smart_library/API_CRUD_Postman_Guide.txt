@@ -1,0 +1,212 @@
+======================================================================
+SMART LIBRARY – POSTMAN CRUD GUIDE
+======================================================================
+
+Base URL (dev): http://localhost:8000
+Common headers:
+  Content-Type: application/json
+  Authorization: Token <token_généré_par_login>
+    -> obligatoire pour toutes les routes sauf inscription (POST /api/users/) et login.
+
+----------------------------------------------------------------------
+1. AUTHENTIFICATION UTILISATEUR (déjà validé)
+----------------------------------------------------------------------
+Créer un utilisateur
+  POST /api/users/
+  Body:
+  {
+    "email": "amine@example.com",
+    "password": "Sup3rPass!",
+    "name": "Amine El Achker",
+    "role": "admin",
+    "is_active": true,
+    "is_staff": true
+  }
+
+Login (récupère le token)
+  POST /api/auth/login/
+  Body:
+  {
+    "email": "amine@example.com",
+    "password": "123456"
+  }
+
+Logout (invalide le token courant)
+  POST /api/auth/logout/
+  Headers: Authorization requis
+
+----------------------------------------------------------------------
+2. TAG
+----------------------------------------------------------------------
+Créer
+  POST /api/tags/
+  {
+    "name": "Intelligence Artificielle"
+  }
+
+Lister
+  GET /api/tags/
+
+Afficher un tag
+  GET /api/tags/<id>/
+
+Mettre à jour
+  PATCH /api/tags/<id>/
+  {
+    "name": "IA"
+  }
+
+Supprimer
+  DELETE /api/tags/<id>/
+
+----------------------------------------------------------------------
+3. DOCUMENT
+----------------------------------------------------------------------
+Pré-requis : disposer d’un utilisateur (`users` API) et d’un tag (`tags` API).
+
+Créer
+  POST /api/documents/
+  {
+    "tag": 1,                          <-- ID du tag ou null
+    "title": "Guide Postman",
+    "filename": "guide-postman.pdf",
+    "owner": "uuid-user",              <-- UUID retourné par l’API users
+    "source": "personal",              <-- valeurs : general/personal
+    "language": "fr",
+    "status": "uploaded",              <-- valeurs : uploaded/processed/indexed
+    "path": "/var/data/guide-postman.pdf"
+  }
+
+Lister
+  GET /api/documents/
+
+Afficher un document
+  GET /api/documents/<uuid>/
+
+Mettre à jour
+  PATCH /api/documents/<uuid>/
+  {
+    "status": "processed"
+  }
+
+Supprimer
+  DELETE /api/documents/<uuid>/
+
+----------------------------------------------------------------------
+4. FAVORITE
+----------------------------------------------------------------------
+Pré-requis : disposer d’un utilisateur et d’un document.
+
+Créer
+  POST /api/favorites/
+  {
+    "user": "uuid-user",
+    "document": "uuid-document"
+  }
+
+Lister
+  GET /api/favorites/
+
+Afficher un favori
+  GET /api/favorites/<id>/
+
+Mettre à jour
+  PATCH /api/favorites/<id>/
+  {
+    "document": "nouveau-uuid-document"
+  }
+
+Supprimer
+  DELETE /api/favorites/<id>/
+
+----------------------------------------------------------------------
+5. CONVERSATION
+----------------------------------------------------------------------
+Créer
+  POST /api/conversations/
+  {
+    "user": "uuid-user",
+    "title": "Session support",
+    "mode": "mixed",                    <-- valeurs : general/personal/mixed
+    "is_active": true
+  }
+
+Lister
+  GET /api/conversations/
+
+Afficher une conversation
+  GET /api/conversations/<uuid>/
+
+Mettre à jour
+  PATCH /api/conversations/<uuid>/
+  {
+    "is_active": false
+  }
+
+Supprimer
+  DELETE /api/conversations/<uuid>/
+
+----------------------------------------------------------------------
+6. MESSAGE
+----------------------------------------------------------------------
+Pré-requis : disposer d’une conversation.
+
+Créer
+  POST /api/messages/
+  {
+    "conversation": "uuid-conversation",
+    "sender": "user",                   <-- valeurs : user/assistant
+    "content": "Bonjour, j’ai besoin d’aide."
+  }
+
+Lister
+  GET /api/messages/
+
+Afficher un message
+  GET /api/messages/<uuid>/
+
+Mettre à jour
+  PATCH /api/messages/<uuid>/
+  {
+    "content": "Correction : tout va bien."
+  }
+
+Supprimer
+  DELETE /api/messages/<uuid>/
+
+----------------------------------------------------------------------
+7. MESSAGE REFERENCE
+----------------------------------------------------------------------
+Pré-requis : disposer d’un message (API messages) et d’un document (API documents).
+
+Créer
+  POST /api/message-references/
+  {
+    "message": "uuid-message",
+    "document": "uuid-document",
+    "source_type": "personal",          <-- valeurs : general/personal
+    "citation": "Voir section 3.2 du guide."
+  }
+
+Lister
+  GET /api/message-references/
+
+Afficher une référence
+  GET /api/message-references/<id>/
+
+Mettre à jour
+  PATCH /api/message-references/<id>/
+  {
+    "citation": "Annexe mise à jour."
+  }
+
+Supprimer
+  DELETE /api/message-references/<id>/
+
+----------------------------------------------------------------------
+NOTES
+----------------------------------------------------------------------
+- Les identifiants numériques (Tag/Favorite) et UUID (User/Document/Conversation/Message) sont renvoyés dans les réponses `list`/`create`. Récupère-les avec un GET si besoin.
+- Les champs `date_added`, `created_at`, `started_at`, `last_activity`, `id` sont en lecture seule : inutile de les inclure dans les requêtes POST/PATCH.
+- Si tu utilises un token, ajoute toujours le header `Authorization: Token …` pour les opérations autres que l’inscription/login.
+- Utilise PATCH pour modifier partiellement un enregistrement, PUT si tu veux renvoyer l’objet entier.
