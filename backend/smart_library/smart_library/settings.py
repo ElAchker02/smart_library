@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -133,6 +134,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -142,6 +145,23 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+}
+
+QDRANT = {
+    "PATH": str((BASE_DIR / ".." / "qdrant_storage").resolve()),
+    "URL": None,  # ex: "http://localhost:6333"
+    "API_KEY": None,
+    "COLLECTION": "documents",
+    "VECTOR_SIZE": 384,
+    "DISTANCE": "cosine",
+    "EMBEDDING_MODEL": "sentence-transformers/all-MiniLM-L6-v2",
+}
+
+DOCUMENT_PROCESSING = {
+    "OCR_LANGUAGES": ["fr", "en"],
+    "EASYOCR_GPU": False,
+    "CHUNK_SIZE": 200,
+    "CHUNK_OVERLAP": 40,
 }
 
 # Default primary key field type

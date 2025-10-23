@@ -1,19 +1,18 @@
 ======================================================================
-SMART LIBRARY – POSTMAN CRUD GUIDE
+SMART LIBRARY - POSTMAN CRUD GUIDE
 ======================================================================
 
 Base URL (dev): http://localhost:8000
-Common headers:
-  Content-Type: application/json
-  Authorization: Token <token_généré_par_login>
-    -> obligatoire pour toutes les routes sauf inscription (POST /api/users/) et login.
+Default headers:
+  Authorization: Token <your_token_here>
+  Content-Type: application/json   (switch to multipart/form-data for uploads)
 
 ----------------------------------------------------------------------
-1. AUTHENTIFICATION UTILISATEUR (déjà validé)
+1. AUTHENTICATION
 ----------------------------------------------------------------------
-Créer un utilisateur
+Create user
   POST /api/users/
-  Body:
+  Body (JSON):
   {
     "email": "amine@example.com",
     "password": "Sup3rPass!",
@@ -23,190 +22,176 @@ Créer un utilisateur
     "is_staff": true
   }
 
-Login (récupère le token)
+Login (returns token)
   POST /api/auth/login/
-  Body:
   {
     "email": "amine@example.com",
     "password": "123456"
   }
 
-Logout (invalide le token courant)
+Logout (invalidates token)
   POST /api/auth/logout/
-  Headers: Authorization requis
+  Header: Authorization: Token <token>
 
 ----------------------------------------------------------------------
 2. TAG
 ----------------------------------------------------------------------
-Créer
+Create
   POST /api/tags/
-  {
-    "name": "Intelligence Artificielle"
-  }
+  { "name": "Intelligence Artificielle" }
 
-Lister
+List
   GET /api/tags/
 
-Afficher un tag
+Retrieve
   GET /api/tags/<id>/
 
-Mettre à jour
+Update
   PATCH /api/tags/<id>/
-  {
-    "name": "IA"
-  }
+  { "name": "IA" }
 
-Supprimer
+Delete
   DELETE /api/tags/<id>/
 
 ----------------------------------------------------------------------
-3. DOCUMENT
+3. DOCUMENT (Upload + OCR + Qdrant indexing)
 ----------------------------------------------------------------------
-Pré-requis : disposer d’un utilisateur (`users` API) et d’un tag (`tags` API).
+Requirements: authenticated user (owner is set automatically) and optional tag ID.
 
-Créer
+Create (runs full pipeline)
   POST /api/documents/
-  {
-    "tag": 1,                          <-- ID du tag ou null
-    "title": "Guide Postman",
-    "filename": "guide-postman.pdf",
-    "owner": "uuid-user",              <-- UUID retourné par l’API users
-    "source": "personal",              <-- valeurs : general/personal
-    "language": "fr",
-    "status": "uploaded",              <-- valeurs : uploaded/processed/indexed
-    "path": "/var/data/guide-postman.pdf"
-  }
+  Body type: form-data
+    file      | File | choose your PDF/JPG/PNG
+    title     | Text | "NLP Guide"
+    tag       | Text | 1        (optional)
+    source    | Text | "personal" or "general"
+    language  | Text | "fr"
+  Response: 201 + JSON with status moving from uploaded -> processed -> indexed once Qdrant is filled.
 
-Lister
+List
   GET /api/documents/
 
-Afficher un document
+Retrieve
   GET /api/documents/<uuid>/
 
-Mettre à jour
+Update metadata only
   PATCH /api/documents/<uuid>/
-  {
-    "status": "processed"
-  }
+  { "title": "Updated title" }
 
-Supprimer
+Replace the file and re-run pipeline
+  PATCH /api/documents/<uuid>/  (multipart form-data with new `file`)
+
+Manually re-run OCR + embeddings without changing file
+  POST /api/documents/<uuid>/reprocess/
+
+Fetch indexed chunks for a document
+  GET /api/documents/<uuid>/chunks/
+  → Returns an array of objects with document metadata + `chunk_index`, `page_number`, `text`.
+
+Delete
   DELETE /api/documents/<uuid>/
 
 ----------------------------------------------------------------------
 4. FAVORITE
 ----------------------------------------------------------------------
-Pré-requis : disposer d’un utilisateur et d’un document.
-
-Créer
+Create
   POST /api/favorites/
   {
-    "user": "uuid-user",
-    "document": "uuid-document"
+    "user": "uuid-of-user",
+    "document": "uuid-of-document"
   }
 
-Lister
+List
   GET /api/favorites/
 
-Afficher un favori
+Retrieve
   GET /api/favorites/<id>/
 
-Mettre à jour
+Update
   PATCH /api/favorites/<id>/
-  {
-    "document": "nouveau-uuid-document"
-  }
+  { "document": "uuid-of-another-document" }
 
-Supprimer
+Delete
   DELETE /api/favorites/<id>/
 
 ----------------------------------------------------------------------
 5. CONVERSATION
 ----------------------------------------------------------------------
-Créer
+Create
   POST /api/conversations/
   {
-    "user": "uuid-user",
-    "title": "Session support",
-    "mode": "mixed",                    <-- valeurs : general/personal/mixed
+    "user": "uuid-of-user",
+    "title": "Support session",
+    "mode": "mixed",
     "is_active": true
   }
 
-Lister
+List
   GET /api/conversations/
 
-Afficher une conversation
+Retrieve
   GET /api/conversations/<uuid>/
 
-Mettre à jour
+Update
   PATCH /api/conversations/<uuid>/
-  {
-    "is_active": false
-  }
+  { "is_active": false }
 
-Supprimer
+Delete
   DELETE /api/conversations/<uuid>/
 
 ----------------------------------------------------------------------
 6. MESSAGE
 ----------------------------------------------------------------------
-Pré-requis : disposer d’une conversation.
-
-Créer
+Create
   POST /api/messages/
   {
-    "conversation": "uuid-conversation",
-    "sender": "user",                   <-- valeurs : user/assistant
-    "content": "Bonjour, j’ai besoin d’aide."
+    "conversation": "uuid-of-conversation",
+    "sender": "user",
+    "content": "Bonjour, j'ai besoin d'aide."
   }
 
-Lister
+List
   GET /api/messages/
 
-Afficher un message
+Retrieve
   GET /api/messages/<uuid>/
 
-Mettre à jour
+Update
   PATCH /api/messages/<uuid>/
-  {
-    "content": "Correction : tout va bien."
-  }
+  { "content": "Update: all good." }
 
-Supprimer
+Delete
   DELETE /api/messages/<uuid>/
 
 ----------------------------------------------------------------------
 7. MESSAGE REFERENCE
 ----------------------------------------------------------------------
-Pré-requis : disposer d’un message (API messages) et d’un document (API documents).
-
-Créer
+Create
   POST /api/message-references/
   {
-    "message": "uuid-message",
-    "document": "uuid-document",
-    "source_type": "personal",          <-- valeurs : general/personal
-    "citation": "Voir section 3.2 du guide."
+    "message": "uuid-of-message",
+    "document": "uuid-of-document",
+    "source_type": "personal",
+    "citation": "Voir section 3.2."
   }
 
-Lister
+List
   GET /api/message-references/
 
-Afficher une référence
+Retrieve
   GET /api/message-references/<id>/
 
-Mettre à jour
+Update
   PATCH /api/message-references/<id>/
-  {
-    "citation": "Annexe mise à jour."
-  }
+  { "citation": "Updated note." }
 
-Supprimer
+Delete
   DELETE /api/message-references/<id>/
 
 ----------------------------------------------------------------------
 NOTES
 ----------------------------------------------------------------------
-- Les identifiants numériques (Tag/Favorite) et UUID (User/Document/Conversation/Message) sont renvoyés dans les réponses `list`/`create`. Récupère-les avec un GET si besoin.
-- Les champs `date_added`, `created_at`, `started_at`, `last_activity`, `id` sont en lecture seule : inutile de les inclure dans les requêtes POST/PATCH.
-- Si tu utilises un token, ajoute toujours le header `Authorization: Token …` pour les opérations autres que l’inscription/login.
-- Utilise PATCH pour modifier partiellement un enregistrement, PUT si tu veux renvoyer l’objet entier.
+- Run `python manage.py seed_demo` to populate demo data (users, tags, documents, favorites, conversations, messages, references).
+- Document processing uploads create OCR text, generate embeddings with SentenceTransformer, and store them in Qdrant with chunk metadata.
+- Every endpoint except sign-up/login requires the Authorization header.
+- Use PATCH for partial updates; PUT if you want to send the full resource.

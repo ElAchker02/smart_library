@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Document, Favorite, Tag
+from .models import Document, DocumentEmbedding, Favorite, Tag
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -19,6 +19,7 @@ class DocumentSerializer(serializers.ModelSerializer):
         model = Document
         fields = [
             "id",
+            "file",
             "tag",
             "title",
             "filename",
@@ -29,7 +30,10 @@ class DocumentSerializer(serializers.ModelSerializer):
             "date_added",
             "path",
         ]
-        read_only_fields = ["id", "date_added"]
+        read_only_fields = ["id", "date_added", "filename", "path", "status", "owner"]
+        extra_kwargs = {
+            "file": {"write_only": False, "required": False},
+        }
 
 
 class FavoriteSerializer(serializers.ModelSerializer):
@@ -40,3 +44,15 @@ class FavoriteSerializer(serializers.ModelSerializer):
         fields = ["id", "user", "document", "created_at"]
         read_only_fields = ["id", "created_at"]
 
+
+class DocumentEmbeddingSerializer(serializers.ModelSerializer):
+    """Serializer pour exposer les chunks indexés d'un document."""
+
+    class Meta:
+        model = DocumentEmbedding
+        fields = [
+            "chunk_index",
+            "page_number",
+            "text",
+        ]
+        read_only_fields = fields
