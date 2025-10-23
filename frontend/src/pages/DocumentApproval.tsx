@@ -20,7 +20,6 @@ import {
   fetchPendingDocuments,
 } from '@/lib/api';
 
-const PAGE_SIZE = 10;
 const formatStatus = (status: Document['status']) => {
   switch (status) {
     case 'pending_meta':
