@@ -10,44 +10,43 @@ export interface User {
 export interface Document {
   id: string;
   title: string;
-  description: string;
   filename: string;
+  file: string | null;
   language: string;
-  category: string;
-  uploadDate: string;
-  isPublic: boolean;
-  userId: string;
-  status: 'processing' | 'ready' | 'error';
-  pageCount?: number;
+  source: 'personal' | 'general';
+  status: 'pending_meta' | 'uploaded' | 'processed' | 'indexed';
+  dateAdded: string;
+  owner: string;
+  tagId: number | null;
+  tagName?: string | null;
+  path?: string | null;
 }
 
 export interface SearchResult {
   documentId: string;
   documentTitle: string;
-  excerpt: string;
-  score: number;
+  filename: string;
+  language: string;
   source: 'general' | 'personal';
-  page?: number;
+  status: 'pending_meta' | 'uploaded' | 'processed' | 'indexed';
+  dateAdded: string;
+  tagName?: string | null;
+  file?: string | null;
 }
 
 export interface ChatMessage {
   id: string;
-  role: 'user' | 'assistant';
+  conversationId: string;
+  sender: 'user' | 'assistant';
   content: string;
-  sources?: {
-    documentId: string;
-    documentTitle: string;
-    page: number;
-    source: 'general' | 'personal';
-  }[];
-  timestamp: Date;
+  createdAt: string;
 }
 
 export interface Conversation {
   id: string;
   title: string;
-  documentIds: string[];
-  messages: ChatMessage[];
-  createdAt: Date;
-  updatedAt: Date;
+  mode: 'general' | 'personal' | 'mixed';
+  isActive: boolean;
+  startedAt: string;
+  lastActivity: string;
 }

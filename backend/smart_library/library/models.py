@@ -30,6 +30,7 @@ class Document(models.Model):
     ]
     
     STATUS_CHOICES = [
+        ('pending_meta', 'Pending Metadata'),
         ('uploaded', 'Uploaded'),
         ('processed', 'Processed'),
         ('indexed', 'Indexed'),

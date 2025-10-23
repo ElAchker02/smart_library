@@ -2,32 +2,40 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
-import { BookOpen, LayoutDashboard, Library, FolderOpen, Search, MessageSquare, Settings, Users } from 'lucide-react';
+import { BookOpen, LayoutDashboard, Library, FolderOpen, Search, Users, ShieldCheck } from 'lucide-react';
 
-const AppSidebar = () => {
+interface MenuItem {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  path: string;
+}
+
+const AppSidebar: React.FC = () => {
   const location = useLocation();
   const { user } = useAuth();
 
   const isUser = user?.role === 'user';
-  const isAdmin = user?.role === 'admin';
   const isSuperAdmin = user?.role === 'superadmin';
 
-  // Menu pour utilisateur normal (pas d'accès à bibliothèque générale)
-  const userMenuItems = [
+  const userMenuItems: MenuItem[] = [
     { icon: LayoutDashboard, label: 'Tableau de bord', path: '/dashboard' },
-    { icon: FolderOpen, label: 'Ma Bibliothèque', path: '/my-library' },
+    { icon: FolderOpen, label: 'Ma bibliotheque', path: '/my-library' },
     { icon: Search, label: 'Recherche', path: '/search' },
   ];
 
-  // Menu pour admin et superadmin
-  const adminMenuItems = [
+  const adminMenuItems: MenuItem[] = [
     { icon: LayoutDashboard, label: 'Tableau de bord', path: '/dashboard' },
-    { icon: Library, label: 'Bibliothèque Générale', path: '/general-library' },
-    { icon: FolderOpen, label: 'Ma Bibliothèque', path: '/my-library' },
+    { icon: Library, label: 'Bibliotheque generale', path: '/general-library' },
+    { icon: FolderOpen, label: 'Ma bibliotheque', path: '/my-library' },
     { icon: Search, label: 'Recherche', path: '/search' },
   ];
 
-  const menuItems = isUser ? userMenuItems : adminMenuItems;
+  const superAdminMenuItems: MenuItem[] = [
+    ...adminMenuItems,
+    { icon: ShieldCheck, label: 'Validation documents', path: '/approvals' },
+  ];
+
+  const menuItems = isUser ? userMenuItems : isSuperAdmin ? superAdminMenuItems : adminMenuItems;
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-64 bg-sidebar border-r border-sidebar-border flex flex-col">
@@ -37,17 +45,16 @@ const AppSidebar = () => {
             <BookOpen className="w-5 h-5 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="font-bold text-lg text-sidebar-foreground">Bibliothèque</h1>
-            <p className="text-xs text-muted-foreground">Numérique Intelligente</p>
+            <h1 className="font-bold text-lg text-sidebar-foreground">Bibliotheque</h1>
+            <p className="text-xs text-muted-foreground">Espace documentaire intelligent</p>
           </div>
         </Link>
       </div>
 
-      <nav className="flex-1 p-4 space-y-1">
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;
-          
           return (
             <Link
               key={item.path}
@@ -56,7 +63,7 @@ const AppSidebar = () => {
                 'flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200',
                 isActive
                   ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
-                  : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
+                  : 'text-sidebar-foreground hover:bg-sidebar-accent/60',
               )}
             >
               <Icon className="w-5 h-5" />
@@ -72,11 +79,11 @@ const AppSidebar = () => {
               'flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200',
               location.pathname === '/users'
                 ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
-                : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
+                : 'text-sidebar-foreground hover:bg-sidebar-accent/60',
             )}
           >
             <Users className="w-5 h-5" />
-            <span>Gestion Utilisateurs</span>
+            <span>Gestion utilisateurs</span>
           </Link>
         )}
       </nav>
@@ -85,7 +92,7 @@ const AppSidebar = () => {
         <div className="flex items-center gap-3 px-4 py-3">
           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
             <span className="text-sm font-medium text-primary">
-              {user?.name.charAt(0).toUpperCase()}
+              {user?.name ? user.name.charAt(0).toUpperCase() : '?'}
             </span>
           </div>
           <div className="flex-1 min-w-0">
@@ -99,3 +106,4 @@ const AppSidebar = () => {
 };
 
 export default AppSidebar;
+

@@ -6,7 +6,7 @@ import { BookOpen, FileText, Search, TrendingUp } from 'lucide-react';
 const Dashboard = () => {
   const stats = [
     {
-      title: 'Documents Généraux',
+      title: 'Documents Generaux',
       value: '24',
       description: 'Documents publics disponibles',
       icon: BookOpen,
@@ -22,12 +22,12 @@ const Dashboard = () => {
     {
       title: 'Recherches',
       value: '156',
-      description: 'Requêtes effectuées',
+      description: 'Requetes effectuees',
       icon: Search,
       trend: '+12 aujourd\'hui'
     },
     {
-      title: 'Activité',
+      title: 'Activite',
       value: '89%',
       description: 'Taux d\'engagement',
       icon: TrendingUp,
@@ -36,7 +36,7 @@ const Dashboard = () => {
   ];
 
   const recentActivity = [
-    { action: 'Consultation', document: 'Guide de démarrage React', time: 'Il y a 2 heures' },
+    { action: 'Consultation', document: 'Guide de demarrage React', time: 'Il y a 2 heures' },
     { action: 'Recherche', document: 'Intelligence Artificielle', time: 'Il y a 4 heures' },
     { action: 'Upload', document: 'Mon rapport Q1', time: 'Hier' },
     { action: 'Chat', document: 'Architecture Microservices', time: 'Hier' }
@@ -46,13 +46,13 @@ const Dashboard = () => {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-foreground mb-2">Tableau de bord</h1>
-        <p className="text-muted-foreground">Vue d'ensemble de votre activité documentaire</p>
+        <p className="text-muted-foreground">Vue d'ensemble de votre activite documentaire</p>
       </div>
 
       <Tabs defaultValue="general" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="general">Bibliothèque Générale</TabsTrigger>
-          <TabsTrigger value="personal">Ma Bibliothèque</TabsTrigger>
+          <TabsTrigger value="general">Bibliotheque Generale</TabsTrigger>
+          <TabsTrigger value="personal">Ma Bibliotheque</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general" className="space-y-6">
@@ -84,8 +84,8 @@ const Dashboard = () => {
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Activité récente</CardTitle>
-                <CardDescription>Vos dernières actions dans la bibliothèque</CardDescription>
+                <CardTitle>Activite recente</CardTitle>
+                <CardDescription>Vos dernieres actions dans la bibliotheque</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -105,15 +105,15 @@ const Dashboard = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Documents populaires</CardTitle>
-                <CardDescription>Les plus consultés cette semaine</CardDescription>
+                <CardDescription>Les plus consultes cette semaine</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {[
-                    { title: 'Guide de démarrage React', views: 234 },
-                    { title: 'Introduction à l\'IA', views: 189 },
+                    { title: 'Guide de demarrage React', views: 234 },
+                    { title: 'Introduction a l\'IA', views: 189 },
                     { title: 'Architecture Microservices', views: 156 },
-                    { title: 'Bases de données NoSQL', views: 142 }
+                    { title: 'Bases de donnees NoSQL', views: 142 }
                   ].map((doc, index) => (
                     <div key={index} className="flex items-center justify-between border-b border-border pb-3 last:border-0 last:pb-0">
                       <p className="text-sm font-medium">{doc.title}</p>
@@ -150,14 +150,14 @@ const Dashboard = () => {
           </div>
           <Card>
             <CardHeader>
-              <CardTitle>Mes documents récents</CardTitle>
-              <CardDescription>Derniers fichiers uploadés</CardDescription>
+              <CardTitle>Mes documents recents</CardTitle>
+              <CardDescription>Derniers fichiers uploades</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-center py-8 text-muted-foreground">
                 <FileText className="w-12 h-12 mx-auto mb-4 opacity-20" />
                 <p>Aucun document personnel pour le moment</p>
-                <p className="text-sm mt-2">Rendez-vous dans "Ma Bibliothèque" pour uploader vos fichiers</p>
+                <p className="text-sm mt-2">Rendez-vous dans "Ma Bibliotheque" pour uploader vos fichiers</p>
               </div>
             </CardContent>
           </Card>

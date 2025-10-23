@@ -1,187 +1,513 @@
-import React, { useState } from 'react';
-import { mockDocuments } from '@/lib/mockData';
-import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Download, Eye, Search, Trash2, Upload, Pencil } from 'lucide-react';
+import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Download, MessageSquare, FileText, Upload } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { Document } from '@/types';
+import {
+  ApiDocument,
+  ApiTag,
+  deleteDocument,
+  fetchDocuments,
+  fetchTags,
+  updateDocument,
+  uploadDocument,
+} from '@/lib/api';
 
-const GeneralLibrary = () => {
-  const { user } = useAuth();
+const PAGE_SIZE = 10;
+
+const formatStatus = (status: Document['status']) => {
+  switch (status) {
+    case 'pending_meta':
+      return 'Metadonnees en attente';
+    case 'uploaded':
+      return 'Telecharge';
+    case 'processed':
+      return 'Traitement en cours';
+    case 'indexed':
+      return 'Indexe';
+    default:
+      return status;
+  }
+};
+
+const GeneralLibrary: React.FC = () => {
+  const { user, token } = useAuth();
   const { toast } = useToast();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [uploadForm, setUploadForm] = useState({
-    title: '',
-    description: '',
-    category: '',
-    language: 'Français'
-  });
-  
-  const isAdminOrSuperAdmin = user?.role === 'admin' || user?.role === 'superadmin';
-  const publicDocuments = mockDocuments.filter(doc => doc.isPublic);
 
-  const filteredDocuments = publicDocuments.filter(doc =>
-    doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    doc.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    doc.category.toLowerCase().includes(searchQuery.toLowerCase())
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [tags, setTags] = useState<ApiTag[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSavingMeta, setIsSavingMeta] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingDocument, setEditingDocument] = useState<Document | null>(null);
+  const [editForm, setEditForm] = useState({ title: '', language: '', tag: '' });
+
+  const mapDocument = useCallback(
+    (doc: ApiDocument): Document => {
+      const tagName = doc.tag ? tags.find((tag) => tag.id === doc.tag)?.name : undefined;
+      return {
+        id: doc.id,
+        title: doc.title,
+        filename: doc.filename,
+        file: doc.file,
+        language: doc.language || '',
+        source: doc.source,
+        status: doc.status,
+        dateAdded: doc.date_added,
+        owner: doc.owner,
+        tagId: doc.tag,
+        tagName,
+        path: doc.path ?? undefined,
+      };
+    },
+    [tags],
   );
 
-  const handleUpload = () => {
-    toast({
-      title: 'Document ajouté',
-      description: `${uploadForm.title} a été ajouté à la bibliothèque générale.`
+  const loadTags = useCallback(async () => {
+    if (!token) return;
+    try {
+      const loadedTags = await fetchTags(token);
+      setTags(loadedTags);
+    } catch (error) {
+      console.error(error);
+    }
+  }, [token]);
+
+  const loadDocuments = useCallback(async () => {
+    if (!token) return;
+    setIsLoading(true);
+    try {
+      const data = await fetchDocuments(token);
+      setDocuments(data.map(mapDocument));
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: 'Chargement impossible',
+        description: 'La recuperation des documents generaux a echoue.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [token, mapDocument, toast]);
+
+  useEffect(() => {
+    loadTags();
+  }, [loadTags]);
+
+  useEffect(() => {
+    loadDocuments();
+  }, [loadDocuments]);
+
+  useEffect(() => {
+    setDocuments((prev) =>
+      prev.map((doc) => ({
+        ...doc,
+        tagName: doc.tagId ? tags.find((tag) => tag.id === doc.tagId)?.name : doc.tagName,
+      })),
+    );
+  }, [tags]);
+
+  const generalDocuments = useMemo(
+    () => documents.filter((doc) => doc.source === 'general' && doc.status !== 'uploaded'),
+    [documents],
+  );
+
+  const filteredDocuments = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return generalDocuments;
+
+    return generalDocuments.filter((doc) => {
+      const tagLabel = doc.tagName ?? (doc.tagId !== null ? `Tag ${doc.tagId}` : '');
+      return (
+        doc.title.toLowerCase().includes(query) ||
+        (doc.filename?.toLowerCase() ?? '').includes(query) ||
+        (doc.language?.toLowerCase() ?? '').includes(query) ||
+        tagLabel.toLowerCase().includes(query)
+      );
     });
-    setIsDialogOpen(false);
-    setUploadForm({ title: '', description: '', category: '', language: 'Français' });
+  }, [generalDocuments, searchQuery]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filteredDocuments.length, searchQuery, documents.length]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredDocuments.length / PAGE_SIZE));
+  const paginatedDocuments = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filteredDocuments.slice(start, start + PAGE_SIZE);
+  }, [filteredDocuments, currentPage]);
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!token || !event.target.files || (user?.role !== 'admin' && user?.role !== 'superadmin')) return;
+
+    const files = Array.from(event.target.files);
+    if (!files.length) return;
+
+    setIsLoading(true);
+    toast({
+      title: 'Upload en cours',
+      description: `${files.length} document(s) en cours de traitement...`,
+    });
+
+    try {
+      for (const file of files) {
+        await uploadDocument(
+          {
+            file,
+            title: file.name.replace(/\.[^.]+$/, ''),
+            source: 'general',
+          },
+          token,
+        );
+      }
+      toast({
+        title: 'Upload termine',
+        description: `${files.length} document(s) ajoutes dans la bibliotheque generale.`,
+      });
+      await loadDocuments();
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: 'Erreur lors de l\'upload',
+        description: 'Le televersement a echoue.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
+
+  const handleDelete = async (documentId: string) => {
+    if (!token) return;
+    try {
+      await deleteDocument(documentId, token);
+      toast({
+        title: 'Document supprime',
+        description: 'Le document a ete retire de la bibliotheque generale.',
+        variant: 'destructive',
+      });
+      await loadDocuments();
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: 'Suppression impossible',
+        description: 'Une erreur est survenue pendant la suppression.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const openInNewTab = (url: string | null | undefined) => {
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } else {
+      toast({
+        title: 'Fichier indisponible',
+        description: "Ce document ne dispose pas encore de fichier accessible.",
+      });
+    }
+  };
+
+  const openEditDialog = (doc: Document) => {
+    setEditingDocument(doc);
+    setEditForm({
+      title: doc.title || '',
+      language: doc.language || '',
+      tag: doc.tagId ? String(doc.tagId) : '',
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const closeEditDialog = () => {
+    setIsEditDialogOpen(false);
+    setEditingDocument(null);
+    setEditForm({ title: '', language: '', tag: '' });
+  };
+
+  const handleEditSubmit = async () => {
+    if (!token || !editingDocument) return;
+
+    const title = editForm.title.trim();
+    const language = editForm.language.trim();
+    const tag = editForm.tag ? Number(editForm.tag) : null;
+
+    setIsSavingMeta(true);
+    try {
+      await updateDocument(
+        editingDocument.id,
+        {
+          title,
+          language,
+          tag,
+        },
+        token,
+      );
+      toast({
+        title: 'Metadonnees mises a jour',
+        description: 'Le document sera traite apres validation des informations.',
+      });
+      closeEditDialog();
+      await loadDocuments();
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: 'Mise a jour impossible',
+        description: 'Verifiez les informations et reessayez.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingMeta(false);
+    }
+  };
+
+  if (!user || (user.role !== 'admin' && user.role !== 'superadmin')) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center text-muted-foreground">
+          Vous n'avez pas les droits necessaires pour acceder a la bibliotheque generale.
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground mb-2">Bibliothèque Générale</h1>
-        <p className="text-muted-foreground">Documents publics partagés par la communauté</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Bibliotheque Generale</h1>
+          <p className="text-muted-foreground">
+            Gerez les documents partages avec l'organisation.
+          </p>
+        </div>
+        <div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept=".pdf,.png,.jpg,.jpeg"
+            onChange={handleFileUpload}
+            className="hidden"
+            disabled={!user || (user.role !== 'admin' && user.role !== 'superadmin')}
+          />
+          <Button
+            type="button"
+            className="gap-2"
+            disabled={
+              isLoading ||
+              !user ||
+              !token ||
+              (user.role !== 'admin' && user.role !== 'superadmin')
+            }
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload className="w-4 h-4" />
+            Ajouter
+          </Button>
+        </div>
       </div>
 
       <div className="flex gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <Input
-            placeholder="Rechercher par titre, description ou catégorie..."
+            placeholder="Rechercher un document, une langue ou un tag..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(event) => setSearchQuery(event.target.value)}
             className="pl-10"
           />
         </div>
-        {isAdminOrSuperAdmin && (
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Upload className="w-4 h-4 mr-2" />
-                Ajouter un document
+      </div>
+
+      {filteredDocuments.length > 0 ? (
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nom</TableHead>
+                <TableHead>Langue</TableHead>
+                <TableHead>Tag</TableHead>
+                <TableHead>Source</TableHead>
+                <TableHead>Date d'ajout</TableHead>
+                <TableHead>Statut</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedDocuments.map((doc) => (
+                <TableRow key={doc.id}>
+                  <TableCell className="font-medium">{doc.title}</TableCell>
+                  <TableCell>{doc.language || 'N/A'}</TableCell>
+                  <TableCell>{doc.tagName ?? (doc.tagId !== null ? `Tag ${doc.tagId}` : '')}</TableCell>
+                  <TableCell>{doc.source === 'general' ? 'General' : doc.source}</TableCell>
+                  <TableCell>
+                    {doc.dateAdded ? new Date(doc.dateAdded).toLocaleString('fr-FR') : ''}
+                  </TableCell>
+                  <TableCell>
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                      {formatStatus(doc.status)}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => openEditDialog(doc)}>
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => openInNewTab(doc.file)}>
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => openInNewTab(doc.file)}>
+                        <Download className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(doc.id)}
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+
+          <div className="flex items-center justify-between p-4 border-t border-border">
+            <p className="text-sm text-muted-foreground">
+              Page {currentPage} sur {totalPages} - {filteredDocuments.length} document(s)
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+              >
+                Precedent
               </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Ajouter un document à la bibliothèque générale</DialogTitle>
-                <DialogDescription>
-                  Enrichissez la base de données en ajoutant un nouveau document public
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="file">Fichier PDF</Label>
-                  <Input id="file" type="file" accept=".pdf" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="title">Titre du document</Label>
-                  <Input
-                    id="title"
-                    value={uploadForm.title}
-                    onChange={(e) => setUploadForm({ ...uploadForm, title: e.target.value })}
-                    placeholder="Guide de démarrage..."
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={uploadForm.description}
-                    onChange={(e) => setUploadForm({ ...uploadForm, description: e.target.value })}
-                    placeholder="Une description détaillée du contenu..."
-                    rows={3}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="category">Catégorie</Label>
-                    <Input
-                      id="category"
-                      value={uploadForm.category}
-                      onChange={(e) => setUploadForm({ ...uploadForm, category: e.target.value })}
-                      placeholder="Développement, IA, Architecture..."
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="language">Langue</Label>
-                    <Select value={uploadForm.language} onValueChange={(value) => setUploadForm({ ...uploadForm, language: value })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Français">Français</SelectItem>
-                        <SelectItem value="English">English</SelectItem>
-                        <SelectItem value="Español">Español</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Annuler
-                </Button>
-                <Button onClick={handleUpload}>
-                  <Upload className="w-4 h-4 mr-2" />
-                  Ajouter à la bibliothèque
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {filteredDocuments.map((doc) => (
-          <Card key={doc.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-start justify-between mb-2">
-                <FileText className="w-8 h-8 text-primary" />
-                <Badge variant="secondary">{doc.category}</Badge>
-              </div>
-              <CardTitle className="text-lg">{doc.title}</CardTitle>
-              <CardDescription>{doc.description}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span>{doc.language}</span>
-                <span>{doc.pageCount} pages</span>
-              </div>
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Ajouté le {new Date(doc.uploadDate).toLocaleDateString('fr-FR')}</span>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="default" size="sm" className="flex-1 gap-2">
-                  <MessageSquare className="w-4 h-4" />
-                  Chat
-                </Button>
-                <Button variant="outline" size="sm" className="flex-1 gap-2">
-                  <Download className="w-4 h-4" />
-                  Télécharger
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {filteredDocuments.length === 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Suivant
+              </Button>
+            </div>
+          </div>
+        </Card>
+      ) : (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <FileText className="w-16 h-16 text-muted-foreground/20 mb-4" />
-            <p className="text-lg font-medium text-muted-foreground">Aucun document trouvé</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Essayez de modifier vos critères de recherche
+            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <Upload className="w-10 h-10 text-primary" />
+            </div>
+            <CardTitle className="mb-2">Aucun document disponible</CardTitle>
+            <p className="text-center text-sm text-muted-foreground">
+              Ajoutez vos premiers documents pour alimenter la bibliotheque generale.
             </p>
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={isEditDialogOpen} onOpenChange={(open) => (!open ? closeEditDialog() : null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Metadonnees du document</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-title">Titre</Label>
+              <Input
+                id="edit-title"
+                value={editForm.title}
+                onChange={(event) =>
+                  setEditForm((prev) => ({ ...prev, title: event.target.value }))
+                }
+                placeholder="Titre du document"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-language">Langue</Label>
+              <Input
+                id="edit-language"
+                value={editForm.language}
+                onChange={(event) =>
+                  setEditForm((prev) => ({ ...prev, language: event.target.value }))
+                }
+                placeholder="fr, en..."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-tag">Tag</Label>
+              <Select
+                value={editForm.tag}
+                onValueChange={(value) => setEditForm((prev) => ({ ...prev, tag: value }))}
+              >
+                <SelectTrigger id="edit-tag">
+                  <SelectValue placeholder="Aucun tag" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Aucun</SelectItem>
+                  {tags.map((tag) => (
+                    <SelectItem key={tag.id} value={String(tag.id)}>
+                      {tag.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeEditDialog}>
+              Annuler
+            </Button>
+            <Button
+              onClick={handleEditSubmit}
+              disabled={
+                isSavingMeta ||
+                editForm.title.trim() === '' ||
+                editForm.language.trim() === ''
+              }
+            >
+              Enregistrer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

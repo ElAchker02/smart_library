@@ -8,7 +8,7 @@ import FloatingNavButton from '@/components/ui/floating-nav-button';
 
 const AppLayout = () => {
   const { user, isLoading } = useAuth();
-  const isUser = user?.role === 'user';
+  const canShowChat = ['user', 'admin', 'superadmin'].includes(user?.role ?? 'user');
 
   if (isLoading) {
     return (
@@ -25,7 +25,7 @@ const AppLayout = () => {
   return (
     <div className="min-h-screen bg-background">
       <AppSidebar />
-      {isUser && (
+      {canShowChat && (
         <FloatingNavButton 
           to="/chat" 
           icon={MessageSquare} 
@@ -43,3 +43,4 @@ const AppLayout = () => {
 };
 
 export default AppLayout;
+

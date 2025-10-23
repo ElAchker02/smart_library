@@ -16,7 +16,7 @@ const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Rediriger si déjà connecté
+  // Rediriger si deja connecte
   React.useEffect(() => {
     if (user) {
       navigate('/dashboard');
@@ -30,11 +30,11 @@ const Login = () => {
     try {
       const userRole = await login(email, password);
       toast({
-        title: 'Connexion réussie',
-        description: 'Bienvenue dans votre bibliothèque numérique',
+        title: 'Connexion reussie',
+        description: 'Bienvenue dans votre bibliotheque numerique',
       });
       
-      // Redirection selon le rôle
+      // Redirection selon le role
       if (userRole === 'user') {
         navigate('/chat');
       } else {
@@ -60,9 +60,9 @@ const Login = () => {
               <BookOpen className="w-8 h-8 text-primary-foreground" />
             </div>
           </div>
-          <CardTitle className="text-3xl font-bold">Bibliothèque Numérique</CardTitle>
+          <CardTitle className="text-3xl font-bold">Bibliotheque Numerique</CardTitle>
           <CardDescription>
-            Connectez-vous pour accéder à votre espace documentaire intelligent
+            Connectez-vous pour acceder a votre espace documentaire intelligent
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -84,7 +84,7 @@ const Login = () => {
               <Input
                 id="password"
                 type="password"
-                placeholder="••••••••"
+                placeholder=""
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required

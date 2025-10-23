@@ -13,8 +13,8 @@ const AppHeader = () => {
   const handleLogout = () => {
     logout();
     toast({
-      title: 'Déconnexion réussie',
-      description: 'À bientôt !',
+      title: 'Deconnexion reussie',
+      description: 'A bientot !',
     });
     navigate('/login');
   };
@@ -32,7 +32,7 @@ const AppHeader = () => {
       </div>
       <Button variant="ghost" onClick={handleLogout} className="gap-2">
         <LogOut className="w-4 h-4" />
-        Se déconnecter
+        Se deconnecter
       </Button>
     </header>
   );
