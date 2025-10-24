@@ -197,7 +197,7 @@ const UserChat: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col md:flex-row">
       <ChatSidebar
         conversations={conversations}
         selectedConversationId={selectedConversationId}
@@ -213,7 +213,7 @@ const UserChat: React.FC = () => {
           </p>
         </div>
 
-        <ScrollArea className="flex-1 p-6">
+        <ScrollArea className="flex-1 p-4 sm:p-6">
           <div className="max-w-4xl mx-auto space-y-6">
             {conversationMessages.length === 0 ? (
               <Card className="p-6 text-center text-muted-foreground">
@@ -253,7 +253,7 @@ const UserChat: React.FC = () => {
         </ScrollArea>
 
         <div className="border-t border-border p-4">
-          <div className="max-w-4xl mx-auto flex gap-2">
+          <div className="max-w-4xl mx-auto flex flex-col gap-2 sm:flex-row">
             <input
               ref={fileInputRef}
               type="file"
@@ -263,6 +263,7 @@ const UserChat: React.FC = () => {
             />
             <Button
               variant="outline"
+              className="sm:w-auto"
               size="icon"
               onClick={() => fileInputRef.current?.click()}
               title="Ajouter un document"
@@ -274,10 +275,14 @@ const UserChat: React.FC = () => {
               onChange={(event) => setInput(event.target.value)}
               onKeyDown={(event) => event.key === 'Enter' && handleSend()}
               placeholder="Posez votre question..."
-              className="flex-1"
+              className="flex-1 w-full"
               disabled={!selectedConversationId}
             />
-            <Button onClick={handleSend} disabled={!input.trim() || isSending || !selectedConversationId}>
+            <Button
+              onClick={handleSend}
+              disabled={!input.trim() || isSending || !selectedConversationId}
+              className="w-full sm:w-auto"
+            >
               <Send className="w-4 h-4" />
             </Button>
           </div>

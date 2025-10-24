@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { MessageSquare } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,6 +9,7 @@ import FloatingNavButton from '@/components/ui/floating-nav-button';
 const AppLayout = () => {
   const { user, isLoading } = useAuth();
   const canShowChat = ['user', 'admin', 'superadmin'].includes(user?.role ?? 'user');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -23,18 +24,18 @@ const AppLayout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <AppSidebar />
+    <div className="min-h-screen bg-background md:pl-64">
+      <AppSidebar isMobileOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       {canShowChat && (
-        <FloatingNavButton 
-          to="/chat" 
-          icon={MessageSquare} 
+        <FloatingNavButton
+          to="/chat"
+          icon={MessageSquare}
           label="Chat IA"
         />
       )}
-      <div className="ml-64">
-        <AppHeader />
-        <main className="p-8">
+      <div className="flex min-h-screen flex-col">
+        <AppHeader onToggleSidebar={() => setIsSidebarOpen(true)} />
+        <main className="flex-1 px-4 py-6 sm:px-6 md:px-8">
           <Outlet />
         </main>
       </div>

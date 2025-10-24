@@ -2,7 +2,17 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
-import { BookOpen, LayoutDashboard, Library, FolderOpen, Search, Users, ShieldCheck } from 'lucide-react';
+import {
+  BookOpen,
+  LayoutDashboard,
+  Library,
+  FolderOpen,
+  Search,
+  Users,
+  ShieldCheck,
+  X,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface MenuItem {
   icon: React.ComponentType<{ className?: string }>;
@@ -10,7 +20,12 @@ interface MenuItem {
   path: string;
 }
 
-const AppSidebar: React.FC = () => {
+interface AppSidebarProps {
+  isMobileOpen?: boolean;
+  onClose?: () => void;
+}
+
+const AppSidebar: React.FC<AppSidebarProps> = ({ isMobileOpen = false, onClose }) => {
   const location = useLocation();
   const { user } = useAuth();
 
@@ -37,8 +52,8 @@ const AppSidebar: React.FC = () => {
 
   const menuItems = isUser ? userMenuItems : isSuperAdmin ? superAdminMenuItems : adminMenuItems;
 
-  return (
-    <aside className="fixed left-0 top-0 h-screen w-64 bg-sidebar border-r border-sidebar-border flex flex-col">
+  const SidebarContent = (
+    <div className="flex h-full w-64 flex-col bg-sidebar border-r border-sidebar-border">
       <div className="p-6 border-b border-sidebar-border">
         <Link to="/dashboard" className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
@@ -65,6 +80,7 @@ const AppSidebar: React.FC = () => {
                   ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
                   : 'text-sidebar-foreground hover:bg-sidebar-accent/60',
               )}
+              onClick={onClose}
             >
               <Icon className="w-5 h-5" />
               <span>{item.label}</span>
@@ -81,6 +97,7 @@ const AppSidebar: React.FC = () => {
                 ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
                 : 'text-sidebar-foreground hover:bg-sidebar-accent/60',
             )}
+            onClick={onClose}
           >
             <Users className="w-5 h-5" />
             <span>Gestion utilisateurs</span>
@@ -101,9 +118,40 @@ const AppSidebar: React.FC = () => {
           </div>
         </div>
       </div>
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      <aside className="hidden md:flex fixed left-0 top-0 h-screen">
+        {SidebarContent}
+      </aside>
+
+      {isMobileOpen && (
+        <div className="fixed inset-0 z-50 flex md:hidden">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={onClose}
+            role="button"
+            aria-label="Fermer le menu"
+            tabIndex={-1}
+          />
+          <div className="relative h-full">
+            {SidebarContent}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-4 right-4 text-sidebar-foreground"
+              onClick={onClose}
+              aria-label="Fermer le menu"
+            >
+              <X className="w-5 h-5" />
+            </Button>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
 export default AppSidebar;
-

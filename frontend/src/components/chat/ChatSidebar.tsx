@@ -23,7 +23,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   const { user, logout } = useAuth();
 
   return (
-    <aside className="w-72 bg-card border-r border-border flex flex-col h-screen">
+    <aside className="w-full md:w-72 bg-card border-b md:border-b-0 md:border-r border-border flex flex-col md:h-screen">
       <div className="p-4 border-b border-border space-y-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
@@ -71,8 +71,8 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
         </div>
       </ScrollArea>
 
-      <div className="p-3 border-t border-border space-y-2">
-        <Link to="/dashboard">
+      <div className="p-3 border-t border-border grid gap-2 sm:grid-cols-2 md:grid-cols-1">
+        <Link to="/dashboard" className="sm:col-span-1">
           <Button variant="outline" className="w-full justify-start gap-2" size="sm">
             <LayoutDashboard className="w-4 h-4" />
             Mon tableau de bord

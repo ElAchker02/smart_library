@@ -148,7 +148,7 @@ const SearchPage: React.FC = () => {
         </p>
       </div>
 
-      <Card>
+      <Card className="max-w-full">
         <CardHeader>
           <CardTitle>Effectuer une recherche</CardTitle>
           <CardDescription>
@@ -157,14 +157,14 @@ const SearchPage: React.FC = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <Tabs value={searchScope} onValueChange={(value) => setSearchScope(value as typeof searchScope)}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="all">Toutes les sources</TabsTrigger>
-              <TabsTrigger value="general">Bibliotheque generale</TabsTrigger>
-              <TabsTrigger value="personal">Ma bibliotheque</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 gap-2">
+              <TabsTrigger value="all" className="w-full">Toutes les sources</TabsTrigger>
+              <TabsTrigger value="general" className="w-full">Bibliotheque generale</TabsTrigger>
+              <TabsTrigger value="personal" className="w-full">Ma bibliotheque</TabsTrigger>
             </TabsList>
           </Tabs>
 
-          <div className="flex gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row">
             <div className="relative flex-1">
               <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
@@ -175,7 +175,11 @@ const SearchPage: React.FC = () => {
                 className="pl-10"
               />
             </div>
-            <Button onClick={handleSearch} disabled={isSearching || !query.trim()}>
+            <Button
+              onClick={handleSearch}
+              disabled={isSearching || !query.trim()}
+              className="w-full sm:w-auto"
+            >
               Rechercher
             </Button>
           </div>

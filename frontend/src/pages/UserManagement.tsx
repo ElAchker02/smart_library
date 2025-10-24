@@ -241,7 +241,7 @@ const UserManagement: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Gestion des utilisateurs</h1>
           <p className="text-muted-foreground mt-2">
@@ -250,12 +250,12 @@ const UserManagement: React.FC = () => {
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={handleCreateUser}>
+            <Button onClick={handleCreateUser} className="w-full md:w-auto">
               <UserPlus className="w-4 h-4 mr-2" />
               Nouvel utilisateur
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>
                 {editingUserId ? "Modifier l'utilisateur" : 'Creer un utilisateur'}
@@ -387,4 +387,3 @@ const UserManagement: React.FC = () => {
 };
 
 export default UserManagement;
-

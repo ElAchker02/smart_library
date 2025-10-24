@@ -165,16 +165,24 @@ const DocumentApproval: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-2">Validation des documents</h1>
           <p className="text-muted-foreground">
             Examinez les documents uploades avant qu'ils ne soient disponibles dans la bibliotheque generale.
           </p>
         </div>
+        <Button
+          variant="outline"
+          onClick={loadDocuments}
+          disabled={isLoading}
+          className="w-full md:w-auto"
+        >
+          Rafraichir
+        </Button>
       </div>
 
-      <div className="flex gap-4">
+      <div className="flex flex-col gap-4 md:flex-row">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <Input
@@ -184,13 +192,11 @@ const DocumentApproval: React.FC = () => {
             className="pl-10"
           />
         </div>
-        <Button variant="outline" onClick={loadDocuments} disabled={isLoading}>
-          Rafraichir
-        </Button>
       </div>
 
-  {filteredDocuments.length > 0 ? (
+      {filteredDocuments.length > 0 ? (
       <Card>
+        <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -213,7 +219,7 @@ const DocumentApproval: React.FC = () => {
                 </TableCell>
                 <TableCell>{formatStatus(doc.status)}</TableCell>
                 <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
+                  <div className="flex flex-col sm:flex-row sm:justify-end gap-2">
                     <Button variant="ghost" size="sm" onClick={() => openFile(doc.file)}>
                       <Eye className="w-4 h-4" />
                     </Button>
@@ -242,12 +248,13 @@ const DocumentApproval: React.FC = () => {
             ))}
           </TableBody>
         </Table>
+        </div>
 
-        <div className="flex items-center justify-between p-4 border-t border-border">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between p-4 border-t border-border">
           <p className="text-sm text-muted-foreground">
             Page {currentPage} sur {totalPages} - {filteredDocuments.length} document(s)
           </p>
-          <div className="flex gap-2">
+          <div className="flex gap-2 justify-end">
             <Button
               variant="outline"
               size="sm"
@@ -268,8 +275,8 @@ const DocumentApproval: React.FC = () => {
         </div>
       </Card>
     ) : (
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center py-16">
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-16">
           <p className="text-lg font-medium text-muted-foreground">Aucun document en attente</p>
           <p className="text-sm text-muted-foreground mt-2">
             Les nouveaux uploads apparaitront ici pour validation.

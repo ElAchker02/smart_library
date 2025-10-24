@@ -160,16 +160,21 @@ const GeneralLibrary: React.FC = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filteredDocuments.length, searchQuery, documents.length]);
+  }, [searchQuery, filteredDocuments.length]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [generalDocuments.length]);
 
   const totalPages = Math.max(1, Math.ceil(filteredDocuments.length / PAGE_SIZE));
+
   const paginatedDocuments = useMemo(() => {
     const start = (currentPage - 1) * PAGE_SIZE;
     return filteredDocuments.slice(start, start + PAGE_SIZE);
   }, [filteredDocuments, currentPage]);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!token || !event.target.files || (user?.role !== 'admin' && user?.role !== 'superadmin')) return;
+    if (!token || !event.target.files) return;
 
     const files = Array.from(event.target.files);
     if (!files.length) return;
@@ -187,59 +192,40 @@ const GeneralLibrary: React.FC = () => {
             file,
             title: file.name.replace(/\.[^.]+$/, ''),
             source: 'general',
+            language: 'fr',
           },
           token,
         );
       }
+
       toast({
         title: 'Upload termine',
-        description: `${files.length} document(s) ajoutes dans la bibliotheque generale.`,
+        description: `${files.length} document(s) ajoutes avec succes.`,
       });
       await loadDocuments();
     } catch (error) {
       console.error(error);
       toast({
-        title: 'Erreur lors de l\'upload',
-        description: 'Le televersement a echoue.',
+        title: "Echec de l'upload",
+        description: 'Veuillez reessayer ou verifier vos droits.',
         variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
-
-  const handleDelete = async (documentId: string) => {
-    if (!token) return;
-    try {
-      await deleteDocument(documentId, token);
-      toast({
-        title: 'Document supprime',
-        description: 'Le document a ete retire de la bibliotheque generale.',
-        variant: 'destructive',
-      });
-      await loadDocuments();
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: 'Suppression impossible',
-        description: 'Une erreur est survenue pendant la suppression.',
-        variant: 'destructive',
-      });
+      event.target.value = '';
     }
   };
 
   const openInNewTab = (url: string | null | undefined) => {
-    if (url) {
-      window.open(url, '_blank', 'noopener,noreferrer');
-    } else {
+    if (!url) {
       toast({
-        title: 'Fichier indisponible',
-        description: "Ce document ne dispose pas encore de fichier accessible.",
+        title: 'Apercu indisponible',
+        description: "Aucun fichier n'est associe a ce document.",
       });
+      return;
     }
+
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const openEditDialog = (doc: Document) => {
@@ -268,6 +254,7 @@ const GeneralLibrary: React.FC = () => {
     const title = editForm.title.trim();
     const language = editForm.language.trim();
     const tag = editForm.tag ? Number(editForm.tag) : null;
+    const status = title && language ? 'indexed' : 'pending_meta';
 
     setIsSavingMeta(true);
     try {
@@ -277,12 +264,13 @@ const GeneralLibrary: React.FC = () => {
           title,
           language,
           tag,
+          status,
         },
         token,
       );
       toast({
-        title: 'Metadonnees mises a jour',
-        description: 'Le document sera traite apres validation des informations.',
+        title: 'Metadonnees enregistrees',
+        description: 'Le document a ete mis a jour.',
       });
       closeEditDialog();
       await loadDocuments();
@@ -290,7 +278,7 @@ const GeneralLibrary: React.FC = () => {
       console.error(error);
       toast({
         title: 'Mise a jour impossible',
-        description: 'Verifiez les informations et reessayez.',
+        description: 'Veuillez verifier les informations et reessayer.',
         variant: 'destructive',
       });
     } finally {
@@ -298,53 +286,68 @@ const GeneralLibrary: React.FC = () => {
     }
   };
 
-  if (!user || (user.role !== 'admin' && user.role !== 'superadmin')) {
-    return (
-      <Card>
-        <CardContent className="py-12 text-center text-muted-foreground">
-          Vous n'avez pas les droits necessaires pour acceder a la bibliotheque generale.
-        </CardContent>
-      </Card>
+  const handleDelete = async (docId: string) => {
+    if (!token) return;
+
+    const confirmDelete = window.confirm(
+      'Voulez-vous vraiment supprimer ce document de la bibliotheque generale ?',
     );
-  }
+
+    if (!confirmDelete) return;
+
+    try {
+      await deleteDocument(docId, token);
+      toast({
+        title: 'Document supprime',
+        description: 'Le document a ete retire de la bibliotheque generale.',
+      });
+      await loadDocuments();
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: 'Suppression impossible',
+        description: 'Veuillez reessayer plus tard.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept=".pdf,.png,.jpg,.jpeg"
+        onChange={handleFileUpload}
+        className="hidden"
+        disabled={!user || (user.role !== 'admin' && user.role !== 'superadmin')}
+      />
+
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-2">Bibliotheque Generale</h1>
           <p className="text-muted-foreground">
             Gerez les documents partages avec l'organisation.
           </p>
         </div>
-        <div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept=".pdf,.png,.jpg,.jpeg"
-            onChange={handleFileUpload}
-            className="hidden"
-            disabled={!user || (user.role !== 'admin' && user.role !== 'superadmin')}
-          />
-          <Button
-            type="button"
-            className="gap-2"
-            disabled={
-              isLoading ||
-              !user ||
-              !token ||
-              (user.role !== 'admin' && user.role !== 'superadmin')
-            }
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Upload className="w-4 h-4" />
-            Ajouter
-          </Button>
-        </div>
+        <Button
+          type="button"
+          className="gap-2 w-full md:w-auto"
+          disabled={
+            isLoading ||
+            !user ||
+            !token ||
+            (user.role !== 'admin' && user.role !== 'superadmin')
+          }
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <Upload className="w-4 h-4" />
+          Ajouter
+        </Button>
       </div>
 
-      <div className="flex gap-4">
+      <div className="flex flex-col gap-4 md:flex-row">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <Input
@@ -358,63 +361,134 @@ const GeneralLibrary: React.FC = () => {
 
       {filteredDocuments.length > 0 ? (
         <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nom</TableHead>
-                <TableHead>Langue</TableHead>
-                <TableHead>Tag</TableHead>
-                <TableHead>Source</TableHead>
-                <TableHead>Date d'ajout</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedDocuments.map((doc) => (
-                <TableRow key={doc.id}>
-                  <TableCell className="font-medium">{doc.title}</TableCell>
-                  <TableCell>{doc.language || 'N/A'}</TableCell>
-                  <TableCell>{doc.tagName ?? (doc.tagId !== null ? `Tag ${doc.tagId}` : '')}</TableCell>
-                  <TableCell>{doc.source === 'general' ? 'General' : doc.source}</TableCell>
-                  <TableCell>
-                    {doc.dateAdded ? new Date(doc.dateAdded).toLocaleString('fr-FR') : ''}
-                  </TableCell>
-                  <TableCell>
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                      {formatStatus(doc.status)}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => openEditDialog(doc)}>
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => openInNewTab(doc.file)}>
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => openInNewTab(doc.file)}>
-                        <Download className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(doc.id)}
-                      >
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <div className="hidden md:block">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nom</TableHead>
+                    <TableHead>Langue</TableHead>
+                    <TableHead>Tag</TableHead>
+                    <TableHead>Source</TableHead>
+                    <TableHead>Date d'ajout</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedDocuments.map((doc) => (
+                    <TableRow key={doc.id}>
+                      <TableCell className="font-medium">{doc.title}</TableCell>
+                      <TableCell>{doc.language || 'N/A'}</TableCell>
+                      <TableCell>
+                        {doc.tagName ?? (doc.tagId !== null ? `Tag ${doc.tagId}` : '')}
+                      </TableCell>
+                      <TableCell>{doc.source === 'general' ? 'General' : doc.source}</TableCell>
+                      <TableCell>
+                        {doc.dateAdded ? new Date(doc.dateAdded).toLocaleString('fr-FR') : ''}
+                      </TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                          {formatStatus(doc.status)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button variant="ghost" size="sm" onClick={() => openEditDialog(doc)}>
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => openInNewTab(doc.file)}>
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => openInNewTab(doc.file)}>
+                            <Download className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(doc.id)}
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
 
-          <div className="flex items-center justify-between p-4 border-t border-border">
+          <div className="md:hidden space-y-3 p-4">
+            {paginatedDocuments.map((doc) => (
+              <div
+                key={doc.id}
+                className="rounded-xl border border-border bg-card p-4 shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-base font-semibold text-foreground">{doc.title}</h3>
+                    {doc.dateAdded && (
+                      <p className="text-xs text-muted-foreground">
+                        Ajoute le {new Date(doc.dateAdded).toLocaleDateString('fr-FR')}
+                      </p>
+                    )}
+                  </div>
+                  <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+                    {formatStatus(doc.status)}
+                  </span>
+                </div>
+
+                <dl className="mt-3 space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">Langue</dt>
+                    <dd className="font-medium">{doc.language || 'N/A'}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">Tag</dt>
+                    <dd className="font-medium">
+                      {doc.tagName ?? (doc.tagId !== null ? `Tag ${doc.tagId}` : 'Aucun')}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">Source</dt>
+                    <dd className="font-medium">
+                      {doc.source === 'general' ? 'General' : doc.source}
+                    </dd>
+                  </div>
+                </dl>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button variant="default" size="sm" onClick={() => openEditDialog(doc)}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Modifier
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={() => openInNewTab(doc.file)}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    Voir
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => openInNewTab(doc.file)}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Telecharger
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleDelete(doc.id)}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Supprimer
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between p-4 border-t border-border">
             <p className="text-sm text-muted-foreground">
               Page {currentPage} sur {totalPages} - {filteredDocuments.length} document(s)
             </p>
-            <div className="flex gap-2">
+            <div className="flex gap-2 justify-end">
               <Button
                 variant="outline"
                 size="sm"
@@ -449,7 +523,7 @@ const GeneralLibrary: React.FC = () => {
       )}
 
       <Dialog open={isEditDialogOpen} onOpenChange={(open) => (!open ? closeEditDialog() : null)}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Metadonnees du document</DialogTitle>
           </DialogHeader>
@@ -518,3 +592,4 @@ const GeneralLibrary: React.FC = () => {
 };
 
 export default GeneralLibrary;
+
