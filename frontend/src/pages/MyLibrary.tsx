@@ -55,6 +55,7 @@ const formatStatus = (status: Document['status']) => {
 };
 
 const PAGE_SIZE = 10;
+const NONE_TAG_VALUE = '__none__';
 
 const MyLibrary: React.FC = () => {
   const { user, token } = useAuth();
@@ -261,6 +262,10 @@ const MyLibrary: React.FC = () => {
     setIsEditDialogOpen(false);
     setEditingDocument(null);
     setEditForm({ title: '', language: '', tag: '' });
+  };
+
+  const handleTagChange = (value: string) => {
+    setEditForm((prev) => ({ ...prev, tag: value === NONE_TAG_VALUE ? '' : value }));
   };
 
   const handleEditSubmit = async () => {
@@ -487,14 +492,14 @@ const MyLibrary: React.FC = () => {
             <div className="space-y-2">
               <Label htmlFor="personal-edit-tag">Tag</Label>
               <Select
-                value={editForm.tag}
-                onValueChange={(value) => setEditForm((prev) => ({ ...prev, tag: value }))}
+                value={editForm.tag === '' ? NONE_TAG_VALUE : editForm.tag}
+                onValueChange={handleTagChange}
               >
                 <SelectTrigger id="personal-edit-tag">
                   <SelectValue placeholder="Aucun tag" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Aucun</SelectItem>
+                  <SelectItem value={NONE_TAG_VALUE}>Aucun</SelectItem>
                   {Object.entries(tagMap).map(([id, name]) => (
                     <SelectItem key={id} value={id}>
                       {name}

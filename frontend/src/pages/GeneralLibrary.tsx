@@ -40,6 +40,7 @@ import {
 } from '@/lib/api';
 
 const PAGE_SIZE = 10;
+const NONE_TAG_VALUE = '__none__';
 
 const formatStatus = (status: Document['status']) => {
   switch (status) {
@@ -255,6 +256,10 @@ const GeneralLibrary: React.FC = () => {
     setIsEditDialogOpen(false);
     setEditingDocument(null);
     setEditForm({ title: '', language: '', tag: '' });
+  };
+
+  const handleTagChange = (value: string) => {
+    setEditForm((prev) => ({ ...prev, tag: value === NONE_TAG_VALUE ? '' : value }));
   };
 
   const handleEditSubmit = async () => {
@@ -474,14 +479,14 @@ const GeneralLibrary: React.FC = () => {
             <div className="space-y-2">
               <Label htmlFor="edit-tag">Tag</Label>
               <Select
-                value={editForm.tag}
-                onValueChange={(value) => setEditForm((prev) => ({ ...prev, tag: value }))}
+                value={editForm.tag === '' ? NONE_TAG_VALUE : editForm.tag}
+                onValueChange={handleTagChange}
               >
                 <SelectTrigger id="edit-tag">
                   <SelectValue placeholder="Aucun tag" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Aucun</SelectItem>
+                  <SelectItem value={NONE_TAG_VALUE}>Aucun</SelectItem>
                   {tags.map((tag) => (
                     <SelectItem key={tag.id} value={String(tag.id)}>
                       {tag.name}
